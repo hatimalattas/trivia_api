@@ -133,25 +133,29 @@ def create_app(test_config=None):
   @app.route('/questions', methods=['POST'])
   def create_question():
     body = request.get_json()
-
+    search_term = body.get('searchTerm', None)
     new_question = body.get('question', None)
     new_answer = body.get('answer', None)
     new_difficulty = body.get('difficulty', None)
     new_category = body.get('category', None)
-    search_term = body.get('searchTerm', None)
 
-    try:
-      if search_term:
-        selection = Question.query.order_by(Question.id).filter(Question.question.ilike('%{}%'.format(search_term)))
-        current_questions = paginate_questions(request, selection)
+    if search_term:
+      selection = Question.query.order_by(Question.id).filter(Question.question.ilike('%{}%'.format(search_term))).all()
 
-        return jsonify({
-          'success': True,
-          'questions': current_questions,
-          'total_questions': len(selection.all())
-        })
+      if not selection:
+        abort(404)
 
-      else: 
+      current_questions = paginate_questions(request, selection)
+
+      return jsonify({
+        'success': True,
+        'questions': current_questions,
+        'total_questions': len(selection)
+      })
+
+    else: 
+
+      try: 
         question = Question(question=new_question, answer=new_answer, difficulty=new_difficulty, category=new_category)
         question.insert()
 
@@ -165,8 +169,8 @@ def create_app(test_config=None):
           'total_questions': len(Question.query.all())
         })
 
-    except:
-      abort(422)
+      except:
+        abort(422)
 
   '''
   @DONE: 
